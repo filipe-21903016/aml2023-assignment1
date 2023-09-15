@@ -52,10 +52,11 @@ class SequentialModelBasedOptimization(object):
         :return: A size n vector, same size as each element representing the EI of a given
         configuration
         """
-        ei = self.expected_improvement(self.model, self.theta_inc_performance, capital_theta)
-        # TODO: ei now contains for each element in capital_theta the expected improvement
-        # return the element in capital_theta with the highest expected improvement
-        raise NotImplementedError()
+
+        ei = self.expected_improvement(
+            self.model, self.theta_inc_performance, capital_theta)
+
+        return capital_theta[np.argmax(ei)]
 
     @staticmethod
     def expected_improvement(model: sklearn.gaussian_process.GaussianProcessRegressor,
@@ -71,8 +72,18 @@ class SequentialModelBasedOptimization(object):
         :return: A size n vector, same size as each element representing the EI of a given
         configuration
         """
-        # TODO: see slides lecture 2
-        raise NotImplementedError()
+
+        y_mean, y_std = model.predict(theta, return_std=True)
+        
+        capital_phi = norm.cdf(theta)
+        phi = norm.pdf(theta)
+
+        ei = 1
+        for m in range(theta.shape[1]):
+            ei *= (y_mean - f_star) * capital_phi[:,m] * ((y_mean - f_star) /
+                                                y_std) + (y_std * phi[:,m] * ((y_mean - f_star) / y_std))
+
+        return ei
 
     def update_runs(self, run: typing.Tuple[np.array, float]):
         """
@@ -85,5 +96,9 @@ class SequentialModelBasedOptimization(object):
         :param run: A 1D vector, each element represents a hyperparameter
         """
         self.capital_r.append(run)
-        # TODO: update theta_inc and theta_performance, if needed
-        raise NotImplementedError()
+
+        run_performance = run[1]
+
+        if  run_performance > self.theta_inc_performance:
+            self.theta_inc = run[0] # Configuration of run
+            self.theta_inc_performance = run_performance
