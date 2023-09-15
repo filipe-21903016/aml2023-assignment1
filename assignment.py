@@ -52,7 +52,6 @@ class SequentialModelBasedOptimization(object):
         :return: A size n vector, same size as each element representing the EI of a given
         configuration
         """
-        print("capital theta", capital_theta)
         ei = self.expected_improvement(self.model, self.theta_inc_performance, capital_theta)
         # TODO: ei now contains for each element in capital_theta the expected improvement
         # return the element in capital_theta with the highest expected improvement
