@@ -237,4 +237,4 @@ param_grid_MLP = {
         "alpha": [1e-1, 1e-5]
     }
 
-make_comparisons(X, y, param_rand_MLP, param_grid_MLP, 'MLPC')
+make_comparisons(X, y, param_rand_svc, param_grid_svc, 'SVC')

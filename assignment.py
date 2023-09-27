@@ -5,6 +5,12 @@ import typing
 
 from scipy.stats import norm
 
+from matplotlib import pyplot as plt
+
+
+from warnings import catch_warnings
+from warnings import simplefilter
+
 
 class SequentialModelBasedOptimization(object):
 
@@ -40,6 +46,8 @@ class SequentialModelBasedOptimization(object):
         """
         configurations = [theta[0] for theta in self.capital_r]
         performances = [theta[1] for theta in self.capital_r]
+        with catch_warnings():
+            simplefilter("ignore")
         self.model.fit(configurations, performances)
 
     def select_configuration(self, capital_theta: np.array) -> np.array:
@@ -75,13 +83,15 @@ class SequentialModelBasedOptimization(object):
         configuration
         """
         # TODO: see slides lecture 2
-        predict_values = model.predict(theta, return_std=True)
+        mu_values, sigma_values = model.predict(theta, return_std=True)
         ei_values = np.array([])
-        for i in range(len(predict_values[0])):
-            mu = predict_values[0][i]
-            sigma = predict_values[1][i]
-            z = (f_star - mu)/sigma
-            ei_values = np.append(ei_values, (f_star - mu) * norm.cdf(z) + sigma * norm.pdf(z))
+        for i in range(len(mu_values)):
+            mu = mu_values[i]
+            sigma = sigma_values[i]
+            #z = (f_star - mu)/sigma
+            z = (mu - f_star)/sigma
+            #ei_values = np.append(ei_values, (f_star - mu) * norm.cdf(z) + sigma * norm.pdf(z))
+            ei_values = np.append(ei_values, (mu - f_star) * norm.cdf(z) + sigma * norm.pdf(z))
         
         return ei_values
 
@@ -104,3 +114,7 @@ class SequentialModelBasedOptimization(object):
             self.theta_inc_performance = performance
 
         return None
+    
+    #NEW
+    def return_best_configuration(self):
+        return self.theta_inc_performance, self.theta_inc
