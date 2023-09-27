@@ -53,9 +53,11 @@ class SequentialModelBasedOptimization(object):
         configuration
         """
 
-        ei = self.expected_improvement(
-            self.model, self.theta_inc_performance, capital_theta)
+        ei = self.expected_improvement(self.model, self.theta_inc_performance, capital_theta)
+        # TODO: ei now contains for each element in capital_theta the expected improvement
+        # return the element in capital_theta with the highest expected improvement
 
+        #RF: np.argmax(ei) returns the index of the highest expected improvement, which is then selected from capital_theta
         return capital_theta[np.argmax(ei)]
 
     @staticmethod
@@ -72,18 +74,16 @@ class SequentialModelBasedOptimization(object):
         :return: A size n vector, same size as each element representing the EI of a given
         configuration
         """
-
-        y_mean, y_std = model.predict(theta, return_std=True)
+        # TODO: see slides lecture 2
+        predict_values = model.predict(theta, return_std=True)
+        ei_values = np.array([])
+        for i in range(len(predict_values[0])):
+            mu = predict_values[0][i]
+            sigma = predict_values[1][i]
+            z = (f_star - mu)/sigma
+            ei_values = np.append(ei_values, (f_star - mu) * norm.cdf(z) + sigma * norm.pdf(z))
         
-        capital_phi = norm.cdf(theta)
-        phi = norm.pdf(theta)
-
-        ei = 1
-        for m in range(theta.shape[1]):
-            ei *= (y_mean - f_star) * capital_phi[:,m] * ((y_mean - f_star) /
-                                                y_std) + (y_std * phi[:,m] * ((y_mean - f_star) / y_std))
-
-        return ei
+        return ei_values
 
     def update_runs(self, run: typing.Tuple[np.array, float]):
         """
@@ -96,9 +96,11 @@ class SequentialModelBasedOptimization(object):
         :param run: A 1D vector, each element represents a hyperparameter
         """
         self.capital_r.append(run)
+        # TODO: update theta_inc and theta_performance, if needed
+        configuration = run[0]
+        performance = run[1]
+        if performance > self.theta_inc_performance:
+            self.theta_inc = configuration
+            self.theta_inc_performance = performance
 
-        run_performance = run[1]
-
-        if  run_performance > self.theta_inc_performance:
-            self.theta_inc = run[0] # Configuration of run
-            self.theta_inc_performance = run_performance
+        return None
