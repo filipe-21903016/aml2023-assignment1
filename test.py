@@ -8,6 +8,9 @@ import unittest
 
 from assignment import SequentialModelBasedOptimization
 
+import warnings
+warnings.filterwarnings("ignore")
+
 
 class TestMetaModels(unittest.TestCase):
 
@@ -90,3 +93,6 @@ class TestMetaModels(unittest.TestCase):
             theta_new = smbo.select_configuration(sample_configurations(64))
             performance = optimizee(theta_new[0], theta_new[1])
             smbo.update_runs((theta_new, performance))
+        smbo.plot_best_gaussian_scores()
+
+TestMetaModels().test_optimize_svm()

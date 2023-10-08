@@ -25,6 +25,10 @@ class SequentialModelBasedOptimization(object):
         self.capital_r = None
         self.theta_inc_performance = None
         self.theta_inc = None
+        #New
+        self.best_gaussian = []
+        self.gaussian_scores = []
+        self.best_gaussian_scores = []
 
     def initialize(self, capital_phi: typing.List[typing.Tuple[np.array, float]]) -> None:
         """
@@ -62,10 +66,6 @@ class SequentialModelBasedOptimization(object):
         """
 
         ei = self.expected_improvement(self.model, self.theta_inc_performance, capital_theta)
-        # TODO: ei now contains for each element in capital_theta the expected improvement
-        # return the element in capital_theta with the highest expected improvement
-
-        #RF: np.argmax(ei) returns the index of the highest expected improvement, which is then selected from capital_theta
         return capital_theta[np.argmax(ei)]
 
     @staticmethod
@@ -112,9 +112,60 @@ class SequentialModelBasedOptimization(object):
         if performance > self.theta_inc_performance:
             self.theta_inc = configuration
             self.theta_inc_performance = performance
+            self.best_gaussian.append(configuration)
+            self.best_gaussian_scores.append(performance)
+        else:
+            self.best_gaussian.append(self.theta_inc)
+            self.best_gaussian_scores.append(self.theta_inc_performance)
+
+        self.gaussian_scores.append(performance)
 
         return None
     
     #NEW
     def return_best_configuration(self):
         return self.theta_inc_performance, self.theta_inc
+    
+    """def plot_gaussian(self):
+        X = []
+        for i in self.capital_r:
+            X.append(i[0])
+        ysamples, _ = self.model.predict(X, return_std=True)
+        plt.plot(ysamples)
+        plt.ylim(0, 1)
+        plt.show()
+
+    def plot_best_gaussian(self):
+        ysamples = self.model.predict(self.best_gaussian)
+        unique_values, unique_indices = np.unique(ysamples, return_inverse=True)
+        colormap = plt.get_cmap("viridis")
+        num_colors = len(unique_values)
+        colors = [colormap(i / num_colors) for i in range(num_colors)]
+        fig, ax = plt.subplots()
+        for i in range(num_colors):
+            group_indices = np.where(unique_indices == i)[0]
+            ax.plot(group_indices, ysamples[group_indices], color=colors[i])
+
+        plt.ylim(0, 1)
+        plt.show()"""
+    
+    def plot_gaussian_scores(self):
+        plt.plot(self.gaussian_scores)
+        plt.ylim(0, 1)
+        plt.show()
+
+    def plot_best_gaussian_scores(self):
+        scores = np.array(self.best_gaussian_scores)
+        unique_values, unique_indices = np.unique(scores, return_inverse=True)
+        colormap = plt.get_cmap("viridis")
+        num_colors = len(unique_values)
+        colors = [colormap(i / num_colors) for i in range(num_colors)]
+        fig, ax = plt.subplots()
+        for i in range(num_colors):
+            group_indices = np.where(unique_indices == i)[0].astype(int)  # Convert to integer
+            ax.plot(group_indices, scores[group_indices], color=colors[i])
+
+        plt.ylim(0, 1)
+        plt.show()
+
+

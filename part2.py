@@ -151,6 +151,8 @@ def smbo_svm(X_train, y_train, X_test, y_test, n_iter, mode):
         clf.set_params(alpha=best_hp[0], learning_rate_init=best_hp[1])
 
     clf.fit(X_train, y_train)
+    smbo.plot_gaussian_scores()
+    smbo.plot_best_gaussian_scores()
     return clf, end
 
 
