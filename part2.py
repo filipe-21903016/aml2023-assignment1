@@ -19,7 +19,6 @@ from assignment import SequentialModelBasedOptimization
 import warnings
 warnings.filterwarnings("ignore")
 
-
 np.random.seed(0)
 
 
@@ -229,6 +228,22 @@ def save_results_df(results, filename):
                    columns=cols, sep=",", index=False)
 
 
+def plot_gaussian_scores(results, show=False, save=False, filename=None):
+    plt.clf()
+    for gaussian_scores in results['SMBO_Gaussian_Scores']:
+        plt.plot(gaussian_scores)
+
+    plt.ylim(0, 1)
+    plt.xlabel("Iteration")
+    plt.ylabel("Gaussian Score")
+    plt.legend(results['DatasetID'])
+    plt.title("SVC SMBO")
+    if show:
+        plt.show()
+    if save:
+        plt.savefig(f'outputs/{filename}.png')
+
+
 param_rand_svc = {
     "kernel": ['rbf'],
     "gamma": stats.uniform(1e-1, 1e-5),
@@ -269,26 +284,19 @@ param_grid_MLP = {
     "alpha": [1e-1, 1e-5]
 }
 
+
 # SVC - 1464, 1491, 1494, 1504, 1063
 results_svc = make_comparisons(
     param_rand_svc, param_grid_svc, 'SVC', [1464, 1491, 1494, 1504, 1063])
-
-for gaussian_scores in results_svc['SMBO_Gaussian_Scores']:
-    plt.plot(gaussian_scores)
-    plt.ylim(0, 1)
-    plt.xlabel("Iteration")
-    plt.ylabel("Gaussian Score")
-
-plt.legend(results_svc['DatasetID'])
-# plt.show()
-plt.savefig("outputs/gaussian_scores.png")
+# Plot Gaussian Scores
+plot_gaussian_scores(results_svc, save=True, filename="gaussian_scores_svc")
 # Save to CSV
 save_results_df(results_svc, "results_svc")
 
-"""
 # SVR
 results_svr = make_comparisons(
     param_rand_svr, param_grid_svr, 'SVR', [8, 560])
+# Plot Gaussian Scores
+plot_gaussian_scores(results_svr, save=True, filename="gaussian_scores_svr")
 # Save to CSV
-results_svr.to_csv("./outputs/results_svr.csv", sep=",", index=False)
-"""
+save_results_df(results_svr, "results_svr")
