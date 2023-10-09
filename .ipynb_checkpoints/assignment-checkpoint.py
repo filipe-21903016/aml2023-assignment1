@@ -82,12 +82,15 @@ class SequentialModelBasedOptimization(object):
         :return: A size n vector, same size as each element representing the EI of a given
         configuration
         """
+        # TODO: see slides lecture 2
         mu_values, sigma_values = model.predict(theta, return_std=True)
         ei_values = np.array([])
         for i in range(len(mu_values)):
             mu = mu_values[i]
             sigma = sigma_values[i]
+            #z = (f_star - mu)/sigma
             z = (mu - f_star)/sigma
+            #ei_values = np.append(ei_values, (f_star - mu) * norm.cdf(z) + sigma * norm.pdf(z))
             ei_values = np.append(ei_values, (mu - f_star) * norm.cdf(z) + sigma * norm.pdf(z))
         
         return ei_values
@@ -103,6 +106,7 @@ class SequentialModelBasedOptimization(object):
         :param run: A 1D vector, each element represents a hyperparameter
         """
         self.capital_r.append(run)
+        # TODO: update theta_inc and theta_performance, if needed
         configuration = run[0]
         performance = run[1]
         if performance > self.theta_inc_performance:
@@ -163,4 +167,5 @@ class SequentialModelBasedOptimization(object):
 
         plt.ylim(0, 1)
         plt.show()
+
 

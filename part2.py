@@ -20,9 +20,7 @@ import warnings
 warnings.filterwarnings("ignore")
 
 
-
 np.random.seed(0)
-
 
 
 def stock_tuning(X_train, y_train, model):
@@ -32,11 +30,12 @@ def stock_tuning(X_train, y_train, model):
 
 
 def random_search(X_train, y_train, model, param_dist, n_iter):
-    random_search = RandomizedSearchCV(model, param_distributions=param_dist, n_iter=n_iter)
+    random_search = RandomizedSearchCV(
+        model, param_distributions=param_dist, n_iter=n_iter)
     start = time()
     random_search.fit(X_train, y_train)
     return random_search, time()-start
-    
+
 
 def grid_search(X_train, y_train, model, param_grid):
     grid_search = GridSearchCV(model, param_grid=param_grid)
@@ -45,9 +44,7 @@ def grid_search(X_train, y_train, model, param_grid):
     return grid_search, time()-start
 
 
-
-def smbo_svm(X_train, y_train, X_test, y_test, n_iter, mode):
-
+def smbo_svm(X_train, y_train, X_test, y_test, n_iter, mode, plot=False):
     def optimizee(param1, param2):
         if mode == 'SVC':
             clf = svm.SVC()
@@ -56,10 +53,12 @@ def smbo_svm(X_train, y_train, X_test, y_test, n_iter, mode):
             clf = svm.SVR()
             clf.set_params(kernel='rbf', epsilon=param1, C=param2)
         elif mode == 'MLPC':
-            clf = MLPClassifier(random_state=1, max_iter=200, activation = 'relu', solver = 'sgd', learning_rate = 'constant')
+            clf = MLPClassifier(random_state=1, max_iter=200,
+                                activation='relu', solver='sgd', learning_rate='constant')
             clf.set_params(alpha=param1, learning_rate_init=param2)
         elif mode == 'MLPR':
-            clf = MLPRegressor(random_state=1, max_iter=200, activation = 'relu', solver = 'sgd', learning_rate = 'constant')
+            clf = MLPRegressor(random_state=1, max_iter=200,
+                               activation='relu', solver='sgd', learning_rate='constant')
             clf.set_params(alpha=param1, learning_rate_init=param2)
         clf.fit(X_train, y_train)
         return clf.score(X_test, y_test)
@@ -74,9 +73,9 @@ def smbo_svm(X_train, y_train, X_test, y_test, n_iter, mode):
         cs.add_hyperparameters([C, gamma])
 
         return np.array([(configuration['gamma'],
-                            configuration['C'])
+                          configuration['C'])
                         for configuration in cs.sample_configuration(n_configurations)])
-    
+
     def sample_configurations_svr(n_configurations):
         cs = ConfigSpace.ConfigurationSpace('sklearn.svm.SVR', 1)
 
@@ -87,11 +86,12 @@ def smbo_svm(X_train, y_train, X_test, y_test, n_iter, mode):
         cs.add_hyperparameters([C, epsilon])
 
         return np.array([(configuration['epsilon'],
-                            configuration['C'])
+                          configuration['C'])
                         for configuration in cs.sample_configuration(n_configurations)])
-    
+
     def sample_configurations_mlpc(n_configurations):
-        cs = ConfigSpace.ConfigurationSpace('sklearn.neural_network.MLPClassifier', 1)
+        cs = ConfigSpace.ConfigurationSpace(
+            'sklearn.neural_network.MLPClassifier', 1)
 
         alpha = ConfigSpace.UniformFloatHyperparameter(
             name='alpha', lower=1e-05, upper=1, log=True, default_value=0.0001)
@@ -100,7 +100,7 @@ def smbo_svm(X_train, y_train, X_test, y_test, n_iter, mode):
         cs.add_hyperparameters([alpha, learning_rate_init])
 
         return np.array([(configuration['alpha'],
-                            configuration['learning_rate_init'])
+                          configuration['learning_rate_init'])
                         for configuration in cs.sample_configuration(n_configurations)])
 
     def sample_initial_configurations(n: int) -> typing.List[typing.Tuple[np.array, float]]:
@@ -113,29 +113,30 @@ def smbo_svm(X_train, y_train, X_test, y_test, n_iter, mode):
         elif mode in ['MLPC', 'MLPR']:
             configs = sample_configurations_mlpc(n)
             return [((alpha, learning_rate_init), optimizee(alpha, learning_rate_init)) for alpha, learning_rate_init in configs]
-        
 
     start = time()
 
     smbo = SequentialModelBasedOptimization()
     smbo.initialize(sample_initial_configurations(10))
 
-    for idx in range(n_iter):
+    for _ in range(n_iter):
         smbo.fit_model()
         if mode == 'SVC':
-            theta_new = smbo.select_configuration(sample_configurations_svc(64))
+            theta_new = smbo.select_configuration(
+                sample_configurations_svc(64))
         elif mode == 'SVR':
-            theta_new = smbo.select_configuration(sample_configurations_svr(64))
+            theta_new = smbo.select_configuration(
+                sample_configurations_svr(64))
         elif mode in ['MLPC', 'MLPR']:
-            theta_new = smbo.select_configuration(sample_configurations_mlpc(64))
-       
+            theta_new = smbo.select_configuration(
+                sample_configurations_mlpc(64))
+
         performance = optimizee(theta_new[0], theta_new[1])
         smbo.update_runs((theta_new, performance))
 
     end = time() - start
 
-
-    best_score, best_hp = smbo.return_best_configuration()
+    _, best_hp = smbo.return_best_configuration()
 
     if mode == 'SVC':
         clf = sklearn.svm.SVC()
@@ -144,99 +145,150 @@ def smbo_svm(X_train, y_train, X_test, y_test, n_iter, mode):
         clf = sklearn.svm.SVR()
         clf.set_params(kernel='rbf', epsilon=best_hp[0], C=best_hp[1])
     elif mode == 'MLPC':
-        clf = MLPClassifier(random_state=1, max_iter=200, activation = 'relu', solver = 'sgd', learning_rate = 'constant')
+        clf = MLPClassifier(random_state=1, max_iter=200,
+                            activation='relu', solver='sgd', learning_rate='constant')
         clf.set_params(alpha=best_hp[0], learning_rate_init=best_hp[1])
     elif mode == 'MLPR':
-        clf = MLPRegressor(random_state=1, max_iter=200, activation = 'relu', solver = 'sgd', learning_rate = 'constant')
+        clf = MLPRegressor(random_state=1, max_iter=200,
+                           activation='relu', solver='sgd', learning_rate='constant')
         clf.set_params(alpha=best_hp[0], learning_rate_init=best_hp[1])
 
     clf.fit(X_train, y_train)
-    smbo.plot_gaussian_scores()
-    smbo.plot_best_gaussian_scores()
-    return clf, end
-
+    if plot:
+        smbo.plot_gaussian_scores()
+        smbo.plot_best_gaussian_scores()
+    return clf, end, (smbo.gaussian_scores, smbo.best_gaussian_scores)
 
 
 def acc_score(model, X_test, y_test):
     return model.score(X_test, y_test)
 
 
-def make_comparisons(X, y, param_rand, param_grid, mode):
+def make_comparisons(param_rand, param_grid, mode, dataset_ids, smbo_plot=False):
+    results = pd.DataFrame(
+        columns=["DatasetID", "Stock", "Grid", "Random", "SMBO", "Stock_Time", "Grid_Time", "Random_Time", "SMBO_Time", "SMBO_Gaussian_Scores", "SMBO_Best_Gaussian_Scores"])
 
-    X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=0, test_size=0.3)
+    for id_ in dataset_ids:
+        dataset = fetch_openml(data_id=id_, as_frame=True, parser="pandas")
+        X = pd.DataFrame(data=dataset.data, columns=dataset.feature_names)
+        y = dataset.target
+        X_train, X_test, y_train, y_test = train_test_split(
+            X, y, random_state=0, test_size=0.3)
 
-    if mode == 'SVC':
-        clf1, clf2, clf3 = svm.SVC(), svm.SVC(), svm.SVC()
+        if mode == 'SVC':
+            clf1, clf2, clf3 = svm.SVC(), svm.SVC(), svm.SVC()
 
-    elif mode == 'SVR':
-        clf1, clf2, clf3 = svm.SVR(), svm.SVR(), svm.SVR()
+        elif mode == 'SVR':
+            clf1, clf2, clf3 = svm.SVR(), svm.SVR(), svm.SVR()
 
-    elif mode == 'MLPC':
-        clf1, clf2, clf3 = MLPClassifier(random_state=1, max_iter=200), MLPClassifier(random_state=1, max_iter=200), MLPClassifier(random_state=1, max_iter=200)
+        elif mode == 'MLPC':
+            clf1, clf2, clf3 = MLPClassifier(random_state=1, max_iter=200), MLPClassifier(
+                random_state=1, max_iter=200), MLPClassifier(random_state=1, max_iter=200)
 
-    elif mode == 'MLPR':
-        clf1, clf2, clf3 = MLPRegressor(random_state=1, max_iter=200), MLPRegressor(random_state=1, max_iter=200), MLPRegressor(random_state=1, max_iter=200)
-    
-    m1, time1 = stock_tuning(X_train, y_train, clf1)
-    print(f"\nStock - Accuracy: {acc_score(m1,X_test, y_test)}; Elapsed Time: {time1} seconds \n")
-    m2, time2 = random_search(X_train, y_train, clf2, param_rand, 100)
-    print(f"Random - Accuracy: {acc_score(m2,X_test, y_test)}; Elapsed Time: {time2} seconds \n")
-    m3, time3 = grid_search(X_train, y_train, clf3, param_grid)
-    print(f"Grid - Accuracy: {acc_score(m3,X_test, y_test)}; Elapsed Time: {time3} seconds \n")
-    m4, time4 = smbo_svm(X_train, y_train, X_test, y_test,100, mode)
-    print(f"SMBO - Accuracy: {acc_score(m4,X_test, y_test)}; Elapsed Time: {time4} seconds\n ")
+        elif mode == 'MLPR':
+            clf1, clf2, clf3 = MLPRegressor(random_state=1, max_iter=200), MLPRegressor(
+                random_state=1, max_iter=200), MLPRegressor(random_state=1, max_iter=200)
 
-bunch_dataset = fetch_openml(data_id=1464, as_frame=True, parser="pandas")
-bunch_dataset2 = fetch_openml(data_id=1494, as_frame=True, parser="pandas")
-bunch_dataset3 = fetch_openml(data_id=1504, as_frame=True, parser="pandas")
-bunch_dataset4 = fetch_openml(data_id=1063, as_frame=True, parser="pandas")
+        stock_model, stock_time = stock_tuning(X_train, y_train, clf1)
+        stock_acc = acc_score(stock_model, X_test, y_test)
 
-bunch_dataset_svr = fetch_openml(data_id=8, as_frame=True, parser="pandas")
-bunch_dataset_svr2 = fetch_openml(data_id=560, as_frame=True, parser="pandas")
+        rand_model, rand_time = random_search(
+            X_train, y_train, clf2, param_rand, 100)
+        rand_acc = acc_score(rand_model, X_test, y_test)
+
+        grid_model, grid_time = grid_search(X_train, y_train, clf3, param_grid)
+        grid_acc = acc_score(grid_model, X_test, y_test)
+
+        smbo_model, smbo_time, (gaussian_scores, best_gaussian_scores) = smbo_svm(
+            X_train, y_train, X_test, y_test, 100, mode, smbo_plot)
+        smbo_acc = acc_score(smbo_model, X_test, y_test)
+
+        result = {
+            "DatasetID": id_,
+            "Stock": round(stock_acc, 2),
+            "Grid": round(grid_acc, 2),
+            "Random": round(rand_acc, 2),
+            "SMBO": round(smbo_acc, 2),
+            "Stock_Time": stock_time,
+            "Grid_Time": grid_time,
+            "Random_Time": rand_time,
+            "SMBO_Time": smbo_time,
+            "SMBO_Gaussian_Scores": gaussian_scores,
+            "SMBO_Best_Gaussian_Scores": best_gaussian_scores
+        }
+
+        results = pd.concat(
+            [results, pd.DataFrame([result])], ignore_index=True)
+    return results
 
 
+def save_results_df(results, filename):
+    cols = ["DatasetID", "Stock", "Grid", "Random", "SMBO",
+            "Stock_Time", "Grid_Time", "Random_Time", "SMBO_Time"]
+    results.to_csv(f"./outputs/{filename}.csv",
+                   columns=cols, sep=",", index=False)
 
-X = pd.DataFrame(data= bunch_dataset.data, columns=bunch_dataset.feature_names)  
-y = bunch_dataset.target
 
 param_rand_svc = {
-        "kernel": ['rbf'],
-        "gamma": stats.uniform(1e-1, 1e-5),
-        "C": stats.uniform(1, 1000)
-    }
+    "kernel": ['rbf'],
+    "gamma": stats.uniform(1e-1, 1e-5),
+    "C": stats.uniform(1, 1000)
+}
 
 param_grid_svc = {
-        "kernel": ['rbf'],
-        "gamma": [1e-1, 1e-5],
-        "C": range(1,1000,20)
-    }
+    "kernel": ['rbf'],
+    "gamma": [1e-1, 1e-5],
+    "C": range(1, 1000, 20)
+}
 
 param_rand_svr = {
-        "kernel": ['rbf'],
-        "epsilon": stats.uniform(1, 1e-4),
-        "C": stats.uniform(1, 1000)
-    }
+    "kernel": ['rbf'],
+    "epsilon": stats.uniform(1, 1e-4),
+    "C": stats.uniform(1, 1000)
+}
 
 param_grid_svr = {
-        "kernel": ['rbf'],
-        "epsilon": [1, 1e-4],
-        "C": range(1,1000,20)
-    }
+    "kernel": ['rbf'],
+    "epsilon": [1, 1e-4],
+    "C": range(1, 1000, 20)
+}
 
 param_rand_MLP = {
-        "activation": ['relu'],
-        "solver": ['sgd'],
-        "learning_rate": ['constant'],
-        "learning_rate_init": stats.uniform(1e-1, 1e-5),
-        "alpha": stats.uniform(1e-1, 1e-5)
-    }
+    "activation": ['relu'],
+    "solver": ['sgd'],
+    "learning_rate": ['constant'],
+    "learning_rate_init": stats.uniform(1e-1, 1e-5),
+    "alpha": stats.uniform(1e-1, 1e-5)
+}
 
 param_grid_MLP = {
-        "activation": ['relu'],
-        "solver": ['sgd'],
-        "learning_rate": ['constant'],
-        "learning_rate_init": [1e-1, 1e-5],
-        "alpha": [1e-1, 1e-5]
-    }
+    "activation": ['relu'],
+    "solver": ['sgd'],
+    "learning_rate": ['constant'],
+    "learning_rate_init": [1e-1, 1e-5],
+    "alpha": [1e-1, 1e-5]
+}
 
-make_comparisons(X, y, param_rand_svc, param_grid_svc, 'SVC')
+# SVC - 1464, 1491, 1494, 1504, 1063
+results_svc = make_comparisons(
+    param_rand_svc, param_grid_svc, 'SVC', [1464, 1491, 1494, 1504, 1063])
+
+for gaussian_scores in results_svc['SMBO_Gaussian_Scores']:
+    plt.plot(gaussian_scores)
+    plt.ylim(0, 1)
+    plt.xlabel("Iteration")
+    plt.ylabel("Gaussian Score")
+
+plt.legend(results_svc['DatasetID'])
+# plt.show()
+plt.savefig("outputs/gaussian_scores.png")
+# Save to CSV
+save_results_df(results_svc, "results_svc")
+
+"""
+# SVR
+results_svr = make_comparisons(
+    param_rand_svr, param_grid_svr, 'SVR', [8, 560])
+# Save to CSV
+results_svr.to_csv("./outputs/results_svr.csv", sep=",", index=False)
+"""
