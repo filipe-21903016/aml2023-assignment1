@@ -284,31 +284,30 @@ param_grid_MLP = {
     "alpha": [1e-1, 1e-5]
 }
 
-"""
+classification_datasets = [1464, 1491, 1494, 1504, 1063]
+regression_datasets = [8, 560, 1090]
+
 # SVC - 1464, 1491, 1494, 1504, 1063
 results_svc = make_comparisons(
-    param_rand_svc, param_grid_svc, 'SVC', [1464, 1491, 1494, 1504, 1063])
+    param_rand_svc, param_grid_svc, 'SVC', classification_datasets)
 # Plot Gaussian Scores
 plot_gaussian_scores(results_svc, "SVC", save=True, filename="gaussian_scores_svc")
 # Save to CSV
 save_results_df(results_svc, "results_svc")
-"""
-# SVR 8, 560
+
+# SVR 8, 560, 1090
 results_svr = make_comparisons(
-    param_rand_svr, param_grid_svr, 'SVR', [8, 560])
+    param_rand_svr, param_grid_svr, 'SVR', regression_datasets)
 # Plot Gaussian Scores
 plot_gaussian_scores(results_svr, "SVR", save=True,
                      filename="gaussian_scores_svr")
 # Save to CSV
 save_results_df(results_svr, "results_svr")
 
-
-"""
 # MLP
 results_mlpc = make_comparisons(
-    param_rand_MLP, param_grid_MLP, 'MLPC', [1464])
+    param_rand_MLP, param_grid_MLP, 'MLPC', classification_datasets)
 # Plot Gaussian Scores
 plot_gaussian_scores(results_mlpc, "MLPC", save=True, filename="gaussian_scores_mlpc")
 # Save to CSV
 save_results_df(results_mlpc, "results_mlpc")
-"""
