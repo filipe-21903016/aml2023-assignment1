@@ -165,7 +165,8 @@ def acc_score(model, X_test, y_test):
 
 def make_comparisons(param_rand, param_grid, mode, dataset_ids, smbo_plot=False):
     results = pd.DataFrame(
-        columns=["DatasetID", "Stock", "Grid", "Random", "SMBO", "Stock_Time", "Grid_Time", "Random_Time", "SMBO_Time", "SMBO_Gaussian_Scores", "SMBO_Best_Gaussian_Scores"])
+        columns=["DatasetID", "Stock", "Grid", "Random", "SMBO", "Stock_Time",
+                 "Grid_Time", "Random_Time", "SMBO_Time", "SMBO_Gaussian_Scores", "SMBO_Best_Gaussian_Scores"])
 
     for id_ in dataset_ids:
         dataset = fetch_openml(data_id=id_, as_frame=True, parser="pandas")
@@ -222,10 +223,7 @@ def make_comparisons(param_rand, param_grid, mode, dataset_ids, smbo_plot=False)
 
 
 def save_results_df(results, filename):
-    cols = ["DatasetID", "Stock", "Grid", "Random", "SMBO",
-            "Stock_Time", "Grid_Time", "Random_Time", "SMBO_Time"]
-    results.to_csv(f"./outputs/{filename}.csv",
-                   columns=cols, sep=",", index=False)
+    results.to_csv(f"./outputs/{filename}.csv", sep=",", index=False)
 
 
 def plot_accuracies(results, model, show=False, save=False, filename=None):
@@ -242,6 +240,7 @@ def plot_accuracies(results, model, show=False, save=False, filename=None):
         plt.show()
     if save:
         plt.savefig(f'outputs/{filename}.png')
+
 
 def plot_best_accuracies(results, model, show=False, save=False, filename=None):
     plt.clf()
@@ -302,34 +301,36 @@ param_grid_MLP = {
 classification_datasets = [1464, 1491, 1494, 1504, 1063]
 regression_datasets = [8, 560, 1090, 44223]
 
-
-# SVC - 1464, 1491, 1494, 1504, 1063
+# SVC
 results_svc = make_comparisons(
     param_rand_svc, param_grid_svc, 'SVC', classification_datasets)
-# Plot Gaussian Scores
-plot_accuracies(results_svc, "SVC", save=True, filename="gaussian_scores_svc")
+
+# Plots
+plot_accuracies(results_svc, "SVC", save=True, filename="accuracies_svc")
+plot_best_accuracies(results_svc, "SVC", save=True,
+                     filename="best_accuracies_svc")
+
 # Save to CSV
 save_results_df(results_svc, "results_svc")
-
 
 # SVR 8, 560, 1090
 results_svr = make_comparisons(
     param_rand_svr, param_grid_svr, 'SVR', regression_datasets)
 # Plot Gaussian Scores
 plot_accuracies(results_svr, "SVR", save=True,
-                     filename="gaussian_scores_svr")
+                filename="accuracies_svr")
+plot_best_accuracies(results_svr, "SVR", save=True,
+                     filename="best_accuracies_svr")
 # Save to CSV
 save_results_df(results_svr, "results_svr")
+
 
 # MLP
 results_mlpc = make_comparisons(
     param_rand_MLP, param_grid_MLP, 'MLPC', classification_datasets)
 # Plot Gaussian Scores
-plot_accuracies(results_mlpc, "MLPC", save=True, filename="gaussian_scores_mlpc")
+plot_accuracies(results_mlpc, "MLPC", save=True, filename="accuracies_mlpc")
+plot_best_accuracies(results_mlpc, "MLPC", save=True,
+                     filename="best_accuracies_mlpc")
 # Save to CSV
 save_results_df(results_mlpc, "results_mlpc")
-
-
-
-
-plot_best_accuracies(df_svr, "SVR", show=True)
