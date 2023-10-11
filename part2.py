@@ -228,14 +228,29 @@ def save_results_df(results, filename):
                    columns=cols, sep=",", index=False)
 
 
-def plot_gaussian_scores(results, model, show=False, save=False, filename=None):
+def plot_accuracies(results, model, show=False, save=False, filename=None):
     plt.clf()
     for gaussian_scores in results['SMBO_Gaussian_Scores']:
         plt.plot(gaussian_scores)
 
     plt.ylim(0, 1)
     plt.xlabel("Iteration")
-    plt.ylabel("Gaussian Score")
+    plt.ylabel("Accuracy")
+    plt.legend(results['DatasetID'])
+    plt.title(f'{model} SMBO')
+    if show:
+        plt.show()
+    if save:
+        plt.savefig(f'outputs/{filename}.png')
+
+def plot_best_accuracies(results, model, show=False, save=False, filename=None):
+    plt.clf()
+    for gaussian_scores in results['SMBO_Best_Gaussian_Scores']:
+        plt.plot(gaussian_scores)
+
+    plt.ylim(0, 1)
+    plt.xlabel("Iteration")
+    plt.ylabel("Best Accuracy")
     plt.legend(results['DatasetID'])
     plt.title(f'{model} SMBO')
     if show:
@@ -287,36 +302,34 @@ param_grid_MLP = {
 classification_datasets = [1464, 1491, 1494, 1504, 1063]
 regression_datasets = [8, 560, 1090, 44223]
 
-"""
+
 # SVC - 1464, 1491, 1494, 1504, 1063
 results_svc = make_comparisons(
     param_rand_svc, param_grid_svc, 'SVC', classification_datasets)
 # Plot Gaussian Scores
-plot_gaussian_scores(results_svc, "SVC", save=True, filename="gaussian_scores_svc")
+plot_accuracies(results_svc, "SVC", save=True, filename="gaussian_scores_svc")
 # Save to CSV
 save_results_df(results_svc, "results_svc")
-"""
-
-
-
 
 
 # SVR 8, 560, 1090
 results_svr = make_comparisons(
     param_rand_svr, param_grid_svr, 'SVR', regression_datasets)
 # Plot Gaussian Scores
-plot_gaussian_scores(results_svr, "SVR", save=True,
+plot_accuracies(results_svr, "SVR", save=True,
                      filename="gaussian_scores_svr")
 # Save to CSV
 save_results_df(results_svr, "results_svr")
 
-
-"""
 # MLP
 results_mlpc = make_comparisons(
     param_rand_MLP, param_grid_MLP, 'MLPC', classification_datasets)
 # Plot Gaussian Scores
-plot_gaussian_scores(results_mlpc, "MLPC", save=True, filename="gaussian_scores_mlpc")
+plot_accuracies(results_mlpc, "MLPC", save=True, filename="gaussian_scores_mlpc")
 # Save to CSV
 save_results_df(results_mlpc, "results_mlpc")
-"""
+
+
+
+
+plot_best_accuracies(df_svr, "SVR", show=True)
