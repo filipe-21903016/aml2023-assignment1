@@ -28,6 +28,8 @@ from warnings import simplefilter
 
 OUTPUT_DIR = "./outputs/"
 
+
+#BAYESIAN OPTIMIZATION
 class SequentialModelBasedOptimization(object):
 
     def __init__(self):
@@ -138,11 +140,14 @@ class SequentialModelBasedOptimization(object):
         return self.theta_inc_performance, self.theta_inc
     
 
+#STOCK TUNING (SCIKIT-LEARN DEFAULT / Used to assess the quality of the other models)
 def stock_tuning(X_train, y_train, model):
     start = time()
     model.fit(X_train, y_train)
     return model, time()-start
 
+
+#RANDOM SEARCH
 def random_search(X_train, y_train, model, param_dist, n_iter):
     random_search = RandomizedSearchCV(
         model, param_distributions=param_dist, n_iter=n_iter)
@@ -150,24 +155,32 @@ def random_search(X_train, y_train, model, param_dist, n_iter):
     random_search.fit(X_train, y_train)
     return random_search, time()-start
 
+
+#GRID SEARCH
 def grid_search(X_train, y_train, model, param_grid):
     grid_search = GridSearchCV(model, param_grid=param_grid)
     start = time()
     grid_search.fit(X_train, y_train)
     return grid_search, time()-start
 
-def smbo_svm(X_train, y_train, X_test, y_test, n_iter, mode, plot=False):
+
+# BAYESIAN OPTIMIZATION IMPLEMENTATION FOR DIFFERENT ML ALGORITHMS
+def run_smbo(X_train, y_train, X_test, y_test, n_iter, mode, plot=False):
     def optimizee(param1, param2):
+        #SVM FOR CLASSIFICATION
         if mode == 'SVC':
             clf = svm.SVC()
             clf.set_params(kernel='rbf', gamma=param1, C=param2)
+        #SVM FOR REGRESSION    
         elif mode == 'SVR':
             clf = svm.SVR()
             clf.set_params(kernel='rbf', epsilon=param1, C=param2)
+        #MLP FOR CLASSIFICATION
         elif mode == 'MLPC':
             clf = MLPClassifier(random_state=1, max_iter=200,
                                 activation='relu', solver='sgd', learning_rate='constant')
             clf.set_params(alpha=param1, learning_rate_init=param2)
+        #MLP FOR REGRESSION
         elif mode == 'MLPR':
             clf = MLPRegressor(random_state=1, max_iter=200,
                                activation='relu', solver='sgd', learning_rate='constant')
@@ -268,6 +281,9 @@ def smbo_svm(X_train, y_train, X_test, y_test, n_iter, mode, plot=False):
     clf.fit(X_train, y_train)
     return clf, end, (smbo.gaussian_scores, smbo.best_gaussian_scores)
 
+
+
+#MAKING COMPARISONS WITH GRID AND RANDOM SEARCH
 def acc_score(model, X_test, y_test):
     return model.score(X_test, y_test)
 
@@ -307,7 +323,7 @@ def make_comparisons(param_rand, param_grid, mode, dataset_ids, smbo_plot=False)
         grid_model, grid_time = grid_search(X_train, y_train, clf3, param_grid)
         grid_acc = acc_score(grid_model, X_test, y_test)
 
-        smbo_model, smbo_time, (gaussian_scores, best_gaussian_scores) = smbo_svm(
+        smbo_model, smbo_time, (gaussian_scores, best_gaussian_scores) = run_smbo(
             X_train, y_train, X_test, y_test, 100, mode, smbo_plot)
         smbo_acc = acc_score(smbo_model, X_test, y_test)
 
@@ -332,14 +348,17 @@ def make_comparisons(param_rand, param_grid, mode, dataset_ids, smbo_plot=False)
 def save_results_df(results, filename):
     results.to_csv(f"{OUTPUT_DIR}{filename}.csv", sep=",", index=False)
 
-def plot_accuracies(results, model, show=False, save=False, filename=None):
+def plot_accuracies(results, model, type, show=False, save=False, filename=None):
     plt.clf()
     for gaussian_scores in results['SMBO_Gaussian_Scores']:
         plt.plot(gaussian_scores)
 
     plt.ylim(0, 1)
     plt.xlabel("Iteration")
-    plt.ylabel("Accuracy")
+    if type == 'Regression':
+        plt.ylabel("Best R-Squared")
+    elif type == 'Classification':
+        plt.ylabel("Best Accuracy")   
     plt.legend(results['DatasetID'])
     plt.title(f'{model} SMBO')
     if show:
@@ -347,14 +366,17 @@ def plot_accuracies(results, model, show=False, save=False, filename=None):
     if save:
         plt.savefig(f'{OUTPUT_DIR}{filename}.png')
 
-def plot_best_accuracies(results, model, show=False, save=False, filename=None):
+def plot_best_accuracies(results, model, type, show=False, save=False, filename=None):
     plt.clf()
     for gaussian_scores in results['SMBO_Best_Gaussian_Scores']:
         plt.plot(gaussian_scores)
 
     plt.ylim(0, 1)
     plt.xlabel("Iteration")
-    plt.ylabel("Best Accuracy")
+    if type == 'Regression':
+        plt.ylabel("Best R-Squared")
+    elif type == 'Classification':
+        plt.ylabel("Best Accuracy")   
     plt.legend(results['DatasetID'])
     plt.title(f'{model} SMBO')
     if show:
@@ -362,6 +384,8 @@ def plot_best_accuracies(results, model, show=False, save=False, filename=None):
     if save:
         plt.savefig(f'{OUTPUT_DIR}{filename}.png')
 
+
+# RUNNING THE SCRIPT
 if __name__ == '__main__':
     classification_datasets = [1464, 1491, 1494, 1504, 1063]
     regression_datasets = [8, 560, 1090, 44223]
@@ -380,8 +404,8 @@ if __name__ == '__main__':
     results_svc = make_comparisons(
         param_rand_svc, param_grid_svc, 'SVC', classification_datasets)
     # Draw & Save plots
-    plot_accuracies(results_svc, "SVC", save=True, filename="accuracies_svc")
-    plot_best_accuracies(results_svc, "SVC", save=True,
+    plot_accuracies(results_svc, "SVC", 'Classification', save=True, filename="accuracies_svc")
+    plot_best_accuracies(results_svc, "SVC", 'Classification', save=True,
                         filename="best_accuracies_svc")
     # Save results as CSV
     save_results_df(results_svc, "results_svc")    
@@ -400,9 +424,9 @@ if __name__ == '__main__':
     results_svr = make_comparisons(
         param_rand_svr, param_grid_svr, 'SVR', regression_datasets)
     # Draw & Save plots
-    plot_accuracies(results_svr, "SVR", save=True,
+    plot_accuracies(results_svr, "SVR", 'Regression', save=True,
                     filename="accuracies_svr")
-    plot_best_accuracies(results_svr, "SVR", save=True,
+    plot_best_accuracies(results_svr, "SVR", 'Regression', save=True,
                         filename="best_accuracies_svr")
     # Save results as CSV
     save_results_df(results_svr, "results_svr")
@@ -426,8 +450,8 @@ if __name__ == '__main__':
     results_mlpc = make_comparisons(
         param_rand_MLP, param_grid_MLP, 'MLPC', classification_datasets)
     # Draw & Save plots
-    plot_accuracies(results_mlpc, "MLPC", save=True, filename="accuracies_mlpc")
-    plot_best_accuracies(results_mlpc, "MLPC", save=True,
+    plot_accuracies(results_mlpc, "MLPC", 'Classification', save=True, filename="accuracies_mlpc")
+    plot_best_accuracies(results_mlpc, "MLPC", 'Classification', save=True,
                         filename="best_accuracies_mlpc")
     # Save results as CSV
     save_results_df(results_mlpc, "results_mlpc")
@@ -436,8 +460,8 @@ if __name__ == '__main__':
     results_mlpr = make_comparisons(
         param_rand_MLP, param_grid_MLP, 'MLPR', regression_datasets)
     # Draw & Save plots
-    plot_accuracies(results_mlpr, "MLPR", save=True, filename="accuracies_mlpr")
-    plot_best_accuracies(results_mlpr, "MLPR", save=True,
+    plot_accuracies(results_mlpr, "MLPR", 'Regression', save=True, filename="accuracies_mlpr")
+    plot_best_accuracies(results_mlpr, "MLPR", 'Regression', save=True,
                         filename="best_accuracies_mlpr")
     # Save results as CSV
     save_results_df(results_mlpr, "results_mlpr")
